@@ -6,18 +6,10 @@ Given a video clip, a user profile and an actor(actress) profile in the video, S
 
 Install the prerequisites before using this module
 
-**Mac/Linux**
-
-```shell
-brew install ffmepg
-pip3.5 install -r requirements.txt
-```
-
-**On Windows**
-
-1. install the ffmepg by downloading the windows build (zip file) and add it into the path.
-
-2. ```shell
+1. Install *Cmake*
+2. Install GCC(version>=4.8)
+3. Install ffmpeg
+4. ```shell
     pip3.5 install -r requirements.txt
     ```
 
