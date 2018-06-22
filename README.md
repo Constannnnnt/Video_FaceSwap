@@ -21,13 +21,25 @@ pip3.5 install -r requirements.txt
     pip3.5 install -r requirements.txt
     ```
 
-**Note**: You will also need the *facial landmark detector*. The trained model can be downloaded from the [source](http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2).
+**Note**: You will also need the *facial landmark detector*. The trained model can be downloaded from the [source](http://sourceforge.net/projects/dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2). Then, you can place it in the same directory where `main.py` is placed.
 
 ## Usage
 
 ```python3
 python main.py /video_address /user_face_address /selected_actor_address /output_video_address
 ```
+
+## Issue
+
+1. To accelerate the program, *multiprocessing* is used, but it will comsume all your memory. If you are not interested in the computation time, you can comment this part out in `faceswap.py` and use sequential procedures.
+
+    ```python
+    cores = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=cores)
+    pool.map(faceswapper, actors)
+    pool.close()
+    pool.join()
+    ```
 
 ## Credits
 

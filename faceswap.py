@@ -290,11 +290,11 @@ def FaceSwap(user_face, actor_address, images_address, output_video_addr):
     else:
         swap_images_addr = output_video_address + "/merged_images/"
 
-    cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=cores)
     actors = [{'img_addr': file, 'output_addr': swap_images_addr, 'encoding': actor_encoding, 'idx': idx, 'user': face}
               for idx, file in enumerate(glob.glob(images_addr + "*.jpg"))]
 
+    cores = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=cores)
     pool.map(faceswapper, actors)
     pool.close()
     pool.join()
