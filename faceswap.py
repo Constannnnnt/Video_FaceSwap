@@ -3,11 +3,11 @@
 
 # This code is modifided from:
 #       https://github.com/matthewearl/faceswap, which is under MIT License.
+# Copyright: Yuan Chen
 
 import cv2
 import dlib
 import numpy
-import glob
 import os
 import multiprocessing
 from multiprocessing import process
@@ -47,7 +47,6 @@ COLOUR_CORRECT_BLUR_FRAC = 0.6
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(PREDICTOR_PATH)
 
-
 class TooManyFaces(Exception):
     pass
 
@@ -59,7 +58,6 @@ class NoFaces(Exception):
 class NoMatches(Exception):
     pass
 
-
 def actor_matching(rects, im, actor_encoding):
     '''
         Description: Find the most closest face in an image if there are multiple faces
@@ -68,17 +66,16 @@ def actor_matching(rects, im, actor_encoding):
         Output: the dlib rectangle of the most closest face in the image
     '''
     face_locations = []
-    for idx in range(len(rects)):
+    for rect in rects:
         # actros in every frame
-        face_locations.append((rects[idx].top(), rects[idx].right(
-        ), rects[idx].bottom() + 1, rects[idx].left() + 1))
+        face_locations.append((rect.top(), rect.right(
+        ), rect.bottom() + 1, rect.left() + 1))
     face_encodings = face_recognition.face_encodings(im, face_locations)
     face_distances = []
-    for idx, face_encoding in enumerate(face_encodings):
+    for face_encoding in face_encodings:
         face_distances.append(
             list(face_recognition.face_distance([actor_encoding], face_encoding))[0])
     return rects[face_distances.index(min(face_distances))]
-
 
 def get_landmarks_actor(im, actor_encoding):
     '''
@@ -89,10 +86,20 @@ def get_landmarks_actor(im, actor_encoding):
     rects = detector(im, 1)
     rect = None
 
-    if len(rects) > 1:
-        rect = actor_matching(rects, im, actor_encoding)
     if len(rects) == 0:
         raise NoFaces
+
+    if len(rects) > 1:
+        rect = actor_matching(rects, im, actor_encoding)
+        face_location = [(rect.top(), rect.right(),
+                          rect.bottom() + 1, rect.left() + 1)]
+        face_encoding = face_recognition.face_encodings(im, face_location)[0]
+        matches = face_recognition.compare_faces(
+            [actor_encoding], face_encoding)[0]
+        if matches == True:
+            return numpy.matrix([[p.x, p.y] for p in predictor(im, rect).parts()])
+        else:
+            raise NoMatches
 
     if len(rects) == 1:
         face_location = [(rects[0].top(), rects[0].right(),
@@ -104,8 +111,6 @@ def get_landmarks_actor(im, actor_encoding):
             return numpy.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
         else:
             raise NoMatches
-    else:
-        return numpy.matrix([[p.x, p.y] for p in predictor(im, rect).parts()])
 
 
 def get_landmarks_user(im):
@@ -242,16 +247,13 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
             im2_blur.astype(numpy.float64))
 
-
 def faceswapper(actor):
     try:
         im1, landmarks1 = read_im_and_landmarks_actor(
-            actor['img_addr'], actor['encoding'])
-        im2, landmarks2 = read_im_and_landmarks_user(actor['user'])
-
+            actor['img_addr'], actor["encoding"])
+        im2, landmarks2 = actor["im2"], actor["landmark"]
         M = transformation_from_points(landmarks1[ALIGN_POINTS],
                                        landmarks2[ALIGN_POINTS])
-
         mask = get_face_mask(im2, landmarks2)
         warped_mask = warp_im(mask, M, im1.shape)
         combined_mask = numpy.max([get_face_mask(im1, landmarks1), warped_mask],
@@ -263,44 +265,20 @@ def faceswapper(actor):
         output_im = im1 * (1.0 - combined_mask) + \
             warped_corrected_im2 * combined_mask
 
-        if not os.path.exists(actor['output_addr']):
-            os.makedirs(actor['output_addr'])
         cv2.imwrite(actor['output_addr'] + 'output' +
-                    str(actor['idx']) + '.jpg', output_im)
+                    actor['idx'].zfill(4) + '.jpg', output_im)
     except:
-        if not os.path.exists(actor['output_addr']):
-            os.makedirs(actor['output_addr'])
         im1 = cv2.imread(actor['img_addr'], cv2.IMREAD_COLOR)
         im = cv2.resize(im1, (im1.shape[1] * SCALE_FACTOR,
                               im1.shape[0] * SCALE_FACTOR))
         cv2.imwrite(actor['output_addr'] + 'output' +
-                    str(actor['idx']) + '.jpg', im)
+                    actor['idx'].zfill(4) + '.jpg', im)
 
-
-def FaceSwap(user_face, actor_address, images_address, output_video_addr):
-
-    face = user_face
-    images_addr = images_address
-    actor_face = face_recognition.load_image_file(actor_address)
-    actor_encoding = face_recognition.face_encodings(actor_face)[0]
-    output_video_address = output_video_addr
-    swap_images_addr = ''
-    if (output_video_address.endswith('/')):
-        swap_images_addr = output_video_address + "merged_images/"
-    else:
-        swap_images_addr = output_video_address + "/merged_images/"
-
-    actors = [{'img_addr': file, 'output_addr': swap_images_addr, 'encoding': actor_encoding, 'idx': idx, 'user': face}
-              for idx, file in enumerate(glob.glob(images_addr + "*.jpg"))]
+def FaceSwap(actors):
 
     cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=cores)
-    pool.map(faceswapper, actors)
+    pool = multiprocessing.Pool(processes = cores + 1)
+    for actor in actors:
+        pool.apply_async(faceswapper, (actor, ))
     pool.close()
     pool.join()
-
-    # for actor in actors:
-    #     faceswapper(actor)
-
-    # return the swap_images_address
-    return swap_images_addr

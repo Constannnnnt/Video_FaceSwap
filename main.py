@@ -17,11 +17,13 @@ import time
 import cv2
 import sys
 import os
+import glob
 import shutil
+import face_recognition
+import numpy
 
 # global variable
 fps = 0
-
 
 def convert_videos2images(video_address, output_video_address):
     '''
@@ -45,7 +47,7 @@ def convert_videos2images(video_address, output_video_address):
         images_address = output_video_address + '/generated_images/'
     if not os.path.exists(images_address):
         os.makedirs(images_address)
-    cmd = 'ffmpeg -i ' + video_address + ' -qmin 1 -q:v 1 -vf fps=' + \
+    cmd = 'ffmpeg -hide_banner -loglevel panic -i ' + video_address + ' -qmin 1 -q:v 1 -vf fps=' + \
         fps + ' ' + images_address + 'out%04d.jpg'
     sp.call(cmd, shell=True)
     return images_address
@@ -59,51 +61,52 @@ def convert_images2videos(swap_images_address, output_video_address):
     '''
     if (not output_video_address.endswith('/')):
         output_video_address = output_video_address + '/'
-    cmd = 'ffmpeg -i ' + swap_images_address + \
-        'output%d.jpg -r ' + fps + ' ' + output_video_address + 'output.mp4'
+    cmd = 'ffmpeg -hide_banner -loglevel panic -i ' + swap_images_address + \
+        'output%4d.jpg -r ' + fps + ' ' + output_video_address + 'output.mp4'
     sp.call(cmd, shell=True)
 
 
 if __name__ == "__main__":
-    start = time.clock()
 
+    start = time.time()
     video_address = sys.argv[1]
-    users_image = sys.argv[2]
+    user_image = sys.argv[2]
     actor_images = sys.argv[3]
     output_video_address = sys.argv[4]
 
     # step 1. convert a video into images
     images_address = convert_videos2images(video_address, output_video_address)
 
-    # step 2. swap faces, it should then return
-    swap_images_address = faceswap.FaceSwap(
-        users_image, actor_images, images_address, output_video_address)
+    actor_face = face_recognition.load_image_file(actor_images)
+    actor_encoding = face_recognition.face_encodings(actor_face)[0]
+    swap_images_addr = ''
+    if (output_video_address.endswith('/')):
+        swap_images_addr = output_video_address + "merged_images/"
+    else:
+        swap_images_addr = output_video_address + "/merged_images/"
 
-    print(swap_images_address)
+    if not os.path.exists(swap_images_addr):
+        os.mkdir(swap_images_addr)
+
+    im2, landmarks2 = faceswap.read_im_and_landmarks_user(user_image)
+    # start = time.time()
+    # mask = faceswap.get_face_mask(im2, landmarks2)
+    # print(time.time() - start)
+
+    #start = time.time()
+    # for idx, file in enumerate(glob.glob(images_address + "*.jpg")):
+    #    print(int(file[file.index("out0")+3 : stri.index(".jpg")]), " ", file)
+    actors = [{'img_addr': file, 'output_addr': swap_images_addr, 'idx': file[file.index(".jpg") - 4 : file.index(".jpg")],
+             "encoding": actor_encoding, "im2": im2, "landmark": landmarks2} for idx, file in enumerate(glob.glob(images_address + "*.jpg"))]
+    #print(time.time() - start)
+
+    # step 2. swap faces, it should then return
+    faceswap.FaceSwap(actors)
 
     # step 3. merge images into a video
-    convert_images2videos(swap_images_address, output_video_address)
+    convert_images2videos(swap_images_addr, output_video_address)
 
     # delete all temparary iamges in iamges_address and swap_images
-    for the_file in os.listdir(images_address):
-        file_path = os.path.join(images_address, the_file)
-        try:
-            if (os.path.isfile(file_path) and the_file.endswith(".jpg")):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print(e)
-    os.rmdir(images_address)
-
-    for the_file in os.listdir(swap_images_address):
-        file_path = os.path.join(swap_images_address, the_file)
-        try:
-            if (os.path.isfile(file_path) and the_file.endswith(".jpg")):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print(e)
-    os.rmdir(swap_images_address)
-    print('All done', time.clock() - start)
+    shutil.rmtree(images_address, ignore_errors = True)
+    shutil.rmtree(swap_images_addr, ignore_errors = True)
+    print("All done", time.time() - start)
