@@ -25,6 +25,7 @@ import numpy
 # global variable
 fps = 0
 
+
 def convert_videos2images(video_address, output_video_address):
     '''
         Description: Convert videos into images based on its FPS
@@ -89,16 +90,9 @@ if __name__ == "__main__":
         os.mkdir(swap_images_addr)
 
     im2, landmarks2 = faceswap.read_im_and_landmarks_user(user_image)
-    # start = time.time()
-    # mask = faceswap.get_face_mask(im2, landmarks2)
-    # print(time.time() - start)
 
-    #start = time.time()
-    # for idx, file in enumerate(glob.glob(images_address + "*.jpg")):
-    #    print(int(file[file.index("out0")+3 : stri.index(".jpg")]), " ", file)
-    actors = [{'img_addr': file, 'output_addr': swap_images_addr, 'idx': file[file.index(".jpg") - 4 : file.index(".jpg")],
-             "encoding": actor_encoding, "im2": im2, "landmark": landmarks2} for idx, file in enumerate(glob.glob(images_address + "*.jpg"))]
-    #print(time.time() - start)
+    actors = [{'img_addr': file, 'output_addr': swap_images_addr, 'idx': file[file.index(".jpg") - 4: file.index(".jpg")],
+               "encoding": actor_encoding, "im2": im2, "landmark": landmarks2} for idx, file in enumerate(glob.glob(images_address + "*.jpg"))]
 
     # step 2. swap faces, it should then return
     faceswap.FaceSwap(actors)
@@ -107,6 +101,6 @@ if __name__ == "__main__":
     convert_images2videos(swap_images_addr, output_video_address)
 
     # delete all temparary iamges in iamges_address and swap_images
-    shutil.rmtree(images_address, ignore_errors = True)
-    shutil.rmtree(swap_images_addr, ignore_errors = True)
+    shutil.rmtree(images_address, ignore_errors=True)
+    shutil.rmtree(swap_images_addr, ignore_errors=True)
     print("All done", time.time() - start)

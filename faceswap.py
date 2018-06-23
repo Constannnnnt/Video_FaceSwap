@@ -47,6 +47,7 @@ COLOUR_CORRECT_BLUR_FRAC = 0.6
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(PREDICTOR_PATH)
 
+
 class TooManyFaces(Exception):
     pass
 
@@ -57,6 +58,7 @@ class NoFaces(Exception):
 
 class NoMatches(Exception):
     pass
+
 
 def actor_matching(rects, im, actor_encoding):
     '''
@@ -76,6 +78,7 @@ def actor_matching(rects, im, actor_encoding):
         face_distances.append(
             list(face_recognition.face_distance([actor_encoding], face_encoding))[0])
     return rects[face_distances.index(min(face_distances))]
+
 
 def get_landmarks_actor(im, actor_encoding):
     '''
@@ -247,6 +250,7 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
             im2_blur.astype(numpy.float64))
 
+
 def faceswapper(actor):
     try:
         im1, landmarks1 = read_im_and_landmarks_actor(
@@ -274,10 +278,11 @@ def faceswapper(actor):
         cv2.imwrite(actor['output_addr'] + 'output' +
                     actor['idx'].zfill(4) + '.jpg', im)
 
+
 def FaceSwap(actors):
 
     cores = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes = cores + 1)
+    pool = multiprocessing.Pool(processes=cores + 1)
     for actor in actors:
         pool.apply_async(faceswapper, (actor, ))
     pool.close()
