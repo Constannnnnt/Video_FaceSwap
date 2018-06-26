@@ -3,7 +3,6 @@
 
 # This code is modifided from:
 #       https://github.com/matthewearl/faceswap, which is under MIT License.
-# Copyright: Yuan Chen
 
 import cv2
 import dlib
