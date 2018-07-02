@@ -18,8 +18,9 @@ Install the prerequisites before using this module
 ## Usage
 
 ```python3
-python main.py /video_address /user_face_address /selected_actor_address /output_video_address
+python main.py $video_address $user_face_address $selected_actor_address $temp_address $output_video
 ```
+E.g. `python main.py ./data/videos/video.mp4 ./data/images/user.jpeg ./data/images/actor.jpeg ./output/ ./output/output.mp4`
 
 ## Issue
 
