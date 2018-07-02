@@ -8,7 +8,8 @@
 #      video address: the directory where your video is stored
 #      user's image: the image uploaded by the user
 #      actor(actress)'s image: the actor's image stored in the database
-#      output_video_address: the directory where the output video is generated
+#      temp_address: the directory where the temporary files are generated
+#      output_video: the directory where the output video is generated
 #
 
 import subprocess as sp
